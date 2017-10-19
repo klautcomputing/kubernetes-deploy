@@ -1,6 +1,7 @@
 # frozen_string_literal: true
+require 'kubernetes-deploy/kubernetes_resource/base_set'
 module KubernetesDeploy
-  class DaemonSet < KubernetesResource
+  class DaemonSet < BaseSet
     TIMEOUT = 5.minutes
 
     def sync
@@ -28,33 +29,6 @@ module KubernetesDeploy
       @rollout_data["desiredNumberScheduled"].to_i == @rollout_data["currentNumberScheduled"].to_i &&
       @rollout_data["desiredNumberScheduled"].to_i == @rollout_data["numberReady"].to_i &&
       @current_generation == @observed_generation
-    end
-
-    def deploy_failed?
-      @pods.present? && @pods.any?(&:deploy_failed?)
-    end
-
-    def failure_message
-      @pods.map(&:failure_message).compact.uniq.join("\n")
-    end
-
-    def timeout_message
-      @pods.map(&:timeout_message).compact.uniq.join("\n")
-    end
-
-    def deploy_timed_out?
-      super || @pods.present? && @pods.any?(&:deploy_timed_out?)
-    end
-
-    def exists?
-      @found
-    end
-
-    def fetch_events
-      own_events = super
-      return own_events unless @pods.present?
-      most_useful_pod = @pods.find(&:deploy_failed?) || @pods.find(&:deploy_timed_out?) || @pods.first
-      own_events.merge(most_useful_pod.fetch_events)
     end
 
     def fetch_logs
